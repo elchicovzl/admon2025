@@ -38,12 +38,26 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
+        $navItems[] = [
+            'title' => 'Dashboard',
+            'url' => '/dashboard',
+        ];
+
+        if ($request->user()?->hasRole('super-admin') || $request->user()?->hasRole('admin')) {
+            $navItems[] = [
+                'title' => 'Usuarios',
+                'url' => '/dashboard/users',
+            ];
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'quote' => ['message' => trim($message), 'author' => trim($author)],
             'auth' => [
                 'user' => $request->user(),
+                'roles' => $request->user()?->getRoleNames(),
+                'navItems' => $navItems,
             ],
         ];
     }
