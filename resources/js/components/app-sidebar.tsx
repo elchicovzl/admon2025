@@ -3,17 +3,17 @@ import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import { BookOpen, Folder, LayoutGrid, User } from 'lucide-react';
 import AppLogo from './app-logo';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        url: '/dashboard',
-        icon: LayoutGrid,
-    },
-];
+// const mainNavItems: NavItem[] = [
+//     {
+//         title: 'Dashboard',
+//         url: '/dashboard',
+//         icon: LayoutGrid,
+//     },
+// ];
 
 const footerNavItems: NavItem[] = [
     {
@@ -29,6 +29,9 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { auth } = usePage().props;
+    const mainNavItems = [...auth.navItems];
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
