@@ -40,6 +40,7 @@ import {
   ColumnsIcon,
 } from "lucide-react"
 import { z } from "zod"
+import { router } from "@inertiajs/react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -54,28 +55,59 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { columns } from "./columns"
 import { personCreateSchema } from "@/types/schemas/person"
+import { Input } from "@/components/ui/input"
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
-export function DataTable({
-  data: initialData,
-}: {
-  data: z.infer<typeof personCreateSchema>[]
-}) {
-  const [data, setData] = React.useState(() => initialData)
+type Person = z.infer<typeof personCreateSchema>;
+
+type DataTableProps = {
+  data: Person[] | { data: Person[] };
+  paginationMeta: {
+    pageIndex: number;
+    pageCount: number;
+    total: number;
+    pageSize: number;
+  };
+  filters?: {
+    search?: string;
+  };
+};
+
+export function DataTable({ data, paginationMeta, filters }: DataTableProps) {
+  const [search, setSearch] = React.useState(filters?.search ?? "");
   const [rowSelection, setRowSelection] = React.useState({})
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [pagination, setPagination] = React.useState({
-    pageIndex: 0,
-    pageSize: 10,
+    pageIndex: paginationMeta.pageIndex,
+    pageSize: paginationMeta.pageSize,
   })
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  // Sync pagination state with backend meta
+  React.useEffect(() => {
+    setPagination({
+      pageIndex: paginationMeta.pageIndex,
+      pageSize: paginationMeta.pageSize,
+    })
+    // setData(initialData) // Ya no es necesario mantener estado local de data
+  }, [paginationMeta])
+
+  // safeData debe ir antes de cualquier uso
+  const safeData: Person[] = Array.isArray(data)
+    ? data
+    : Array.isArray((data as any).data)
+      ? (data as { data: Person[] }).data
+      : [];
+
   const sortableId = React.useId()
   const sensors = useSensors(useSensor(MouseSensor, {}), useSensor(TouchSensor, {}), useSensor(KeyboardSensor, {}))
 
-  const dataIds = React.useMemo<UniqueIdentifier[]>(() => data?.map(({ id }) => id) || [], [data])
+  const dataIds = React.useMemo<UniqueIdentifier[]>(() => safeData.map((person) => person.id ?? ''), [safeData])
 
   const table = useReactTable({
-    data,
+    data: safeData,
     columns,    
     state: {
       sorting,
@@ -84,35 +116,45 @@ export function DataTable({
       columnFilters,
       pagination,
     },
-    getRowId: (row) => row.id.toString(),
+    getRowId: (row) => row.id?.toString() ?? '',
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
-    onPaginationChange: setPagination,
+    onPaginationChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(pagination) : updater;
+      if (next.pageIndex !== pagination.pageIndex || next.pageSize !== pagination.pageSize) {
+        handlePageChange(next.pageIndex, next.pageSize)
+      }
+      setPagination(next)
+    },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    manualPagination: true,
+    pageCount: paginationMeta.pageCount,
   })
+
+  function handlePageChange(pageIndex: number, pageSize: number) {
+    router.visit(route('persons.index', { page: pageIndex + 1, perPage: pageSize }), {
+      preserveScroll: true,
+      preserveState: true,
+      only: ['data'],
+    })
+  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (active && over && active.id !== over.id) {
-      setData((data) => {
-        const oldIndex = dataIds.indexOf(active.id)
-        const newIndex = dataIds.indexOf(over.id)
-        return arrayMove(data, oldIndex, newIndex)
-      })
+      // TODO: Implement drag and drop
     }
   }
 
-
-
-  function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
+  function DraggableRow({ row }: { row: Row<Person> }) {
     const { transform, transition, setNodeRef, isDragging } = useSortable({
       id: row.original.id,
     })  
@@ -135,8 +177,37 @@ export function DataTable({
     )
   }
 
+  // Debounce para búsqueda en tiempo real
+  React.useEffect(() => {
+    setIsLoading(true);
+    const timeout = setTimeout(() => {
+      router.visit(route('persons.index', { search, page: 1 }), {
+        preserveScroll: true,
+        preserveState: true,
+        only: ['data', 'filters'],
+        replace: true,
+        onFinish: () => setIsLoading(false),
+      });
+    }, 400);
+    return () => {
+      clearTimeout(timeout);
+      setIsLoading(false);
+    };
+  }, [search]);
+
   return (
     <Tabs defaultValue="outline" className="flex w-full flex-col justify-start gap-6">
+      
+      <form className="ml-6 mb-4 flex gap-2 w-1/3" onSubmit={e => e.preventDefault()}>
+        <Input
+          type="text"
+          placeholder="Buscar por identificación o correo"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="input input-bordered"
+        />
+        {isLoading && <span className="flex items-center ml-2"><LoadingSpinner size={20} /></span>}
+      </form>
       <div className="flex items-center justify-between px-4 lg:px-6">
         <div className="flex items-center gap-2">
           <DropdownMenu>

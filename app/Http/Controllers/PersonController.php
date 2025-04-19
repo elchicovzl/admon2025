@@ -15,9 +15,25 @@ class PersonController extends Controller
 {
     public function index()
     {
-        $persons = Person::latest()->get();
+        $perPage = request('perPage', 10);
+        $search = request('search');
+
+        $query = Person::query();
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('identification_number', 'like', "%{$search}%")
+                ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $persons = $query->latest()->paginate($perPage)->withQueryString();
+
         return Inertia::render('backoffice/persons/index', [
-            'data' => $persons
+            'data' => $persons,
+            'filters' => [
+                'search' => $search,
+            ],
         ]);
     }
     
