@@ -48,6 +48,11 @@ class HandleInertiaRequests extends Middleware
                 'title' => 'Usuarios',
                 'url' => '/dashboard/users',
             ];
+
+            $navItems[] = [
+                'title' => 'Personas',
+                'url' => '/dashboard/persons',
+            ];
         }
 
         return [
@@ -58,6 +63,10 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
                 'roles' => $request->user()?->getRoleNames(),
                 'navItems' => $navItems,
+            ],
+            'flash' => [
+                'success' => $request->session()->get('success'),
+                'error' => $request->session()->get('error'),
             ],
         ];
     }
