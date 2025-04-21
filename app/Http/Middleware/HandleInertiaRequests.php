@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use App\Services\NavigationBuilder;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -38,23 +39,6 @@ class HandleInertiaRequests extends Middleware
     {
         [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
 
-        $navItems[] = [
-            'title' => 'Dashboard',
-            'url' => '/dashboard',
-        ];
-
-        if ($request->user()?->hasRole('super-admin') || $request->user()?->hasRole('admin')) {
-            $navItems[] = [
-                'title' => 'Usuarios',
-                'url' => '/dashboard/users',
-            ];
-
-            $navItems[] = [
-                'title' => 'Personas',
-                'url' => '/dashboard/persons',
-            ];
-        }
-
         return [
             ...parent::share($request),
             'name' => config('app.name'),
@@ -62,7 +46,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
                 'roles' => $request->user()?->getRoleNames(),
-                'navItems' => $navItems,
+                'navItems' => NavigationBuilder::build($request),
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),
