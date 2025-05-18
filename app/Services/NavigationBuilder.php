@@ -25,6 +25,7 @@ class NavigationBuilder
         if ($user?->hasRole('super-admin') || $user?->hasRole('admin')) {
             $nav[] = self::makeItem('Usuarios', '/dashboard/users');
             $nav[] = self::makeItem('Personas', '/dashboard/persons');
+            $nav[] = self::makeItem('Tramites', '/dashboard/tramites');
         }
 
         // Ejemplo: menú por permiso

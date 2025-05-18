@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PersonController;
+use App\Http\Controllers\ProcedureController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -28,11 +29,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
         Route::get('dashboard/persons', [PersonController::class, 'index'])->name('persons.index');
-
         Route::get('dashboard/persons/create', [PersonController::class, 'create'])->name('persons.create');
         Route::post('dashboard/persons', [PersonController::class, 'store'])->name('persons.store');
         Route::put('dashboard/persons/{person}', [PersonController::class, 'update'])->name('persons.update');
         Route::delete('dashboard/persons/{person}', [PersonController::class, 'destroy'])->name('persons.destroy');
+
+        Route::get('dashboard/tramites', [ProcedureController::class, 'index'])->name('procedures.index');
+        Route::get('dashboard/tramites/create', [ProcedureController::class, 'create'])->name('procedures.create');
+        Route::post('dashboard/tramites', [ProcedureController::class, 'store'])->name('procedures.store');
+        Route::put('dashboard/tramites/{procedure}', [ProcedureController::class, 'update'])->name('procedures.update');
+        Route::delete('dashboard/tramites/{procedure}', [ProcedureController::class, 'destroy'])->name('procedures.destroy');
+
+
     });
 });
 
